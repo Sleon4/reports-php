@@ -1,0 +1,12 @@
+/.phpunit.cache
+/.fleet
+/.idea
+/.vscode
+/vendor/
+/storage/**/*.key
+/storage/**/*.log
+/storage/postman/*.json
+.rnd
+.env
+.phpunit.result.cache
+supervisord.pid

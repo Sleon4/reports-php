@@ -1,0 +1,100 @@
+<?php
+
+define('LION_START', microtime(true));
+
+/**
+ * ------------------------------------------------------------------------------
+ * Register The Auto Loader
+ * ------------------------------------------------------------------------------
+ * Composer provides a convenient, automatically generated class loader for
+ * this application
+ * ------------------------------------------------------------------------------
+ **/
+
+require_once("vendor/autoload.php");
+
+/**
+ * ------------------------------------------------------------------------------
+ * Register environment variable loader automatically
+ * ------------------------------------------------------------------------------
+ * .dotenv provides an easy way to access environment variables with $_ENV
+ * ------------------------------------------------------------------------------
+ **/
+
+(Dotenv\Dotenv::createImmutable(__DIR__))->load();
+
+/**
+ * ------------------------------------------------------------------------------
+ * initialization of predefined constants and functions
+ * ------------------------------------------------------------------------------
+ **/
+
+include_once(__DIR__ . "/config/helpers.php");
+
+/**
+ * ------------------------------------------------------------------------------
+ * Import route for RSA
+ * ------------------------------------------------------------------------------
+ * Load default route for RSA
+ * ------------------------------------------------------------------------------
+ **/
+
+if (env->RSA_URL_PATH != '') {
+    LionSecurity\RSA::$url_path = storage_path(env->RSA_URL_PATH, false);
+}
+
+/**
+ * ------------------------------------------------------------------------------
+ * Start database service
+ * ------------------------------------------------------------------------------
+ * Upload data to establish a connection
+ * ------------------------------------------------------------------------------
+ **/
+
+$responseDatabase = \LionDatabase\Driver::run(
+    include_once("./config/database.php")
+);
+
+if (isError($responseDatabase)) {
+    logger($responseDatabase->message, 'error', [], false);
+    finish($responseDatabase->message);
+}
+
+/**
+ * ------------------------------------------------------------------------------
+ * Start email sending service
+ * ------------------------------------------------------------------------------
+ * enter account access credentials
+ * ------------------------------------------------------------------------------
+ **/
+
+$response_email = \LionMailer\MailService::run(
+    require_once("config/email.php")
+);
+
+if (isError($response_email)) {
+    logger($response_email->message, 'error');
+    finish($response_email);
+}
+
+/**
+ * ------------------------------------------------------------------------------
+ * Run The lion Application
+ * ------------------------------------------------------------------------------
+ * This is where the commands for your application are executed
+ * ------------------------------------------------------------------------------
+ **/
+
+date_default_timezone_set(env->SERVER_DATE_TIMEZONE);
+$commands = include_once("./config/commands.php");
+$socket_commands = include_once("./config/socket-commands.php");
+
+$kernel = \App\Console\Kernel::getInstance();
+
+$kernel->initialize(
+    [...$commands['framework'], ...$commands['app']],
+    [...$socket_commands['app']]
+);
+
+$kernel->add();
+$kernel->run();
